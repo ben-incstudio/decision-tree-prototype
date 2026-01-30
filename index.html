@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Decision Tree V42</title>
+</head>
+<body style="font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; padding:24px; background:#fff;">
+
+<div id="app" style="max-width:980px;margin:0 auto;padding:18px;border:1px solid #eee;border-radius:14px;">
+  <div id="card" style="padding:16px;border:1px solid #eee;border-radius:12px;">
+    <h2 id="question" style="margin:0 0 12px; text-transform:uppercase; letter-spacing:.02em;"></h2>
+    <div id="options" style="display:flex;gap:10px;flex-wrap:wrap;"></div>
+  </div>
+
+  <div id="outcome" style="display:none;margin-top:16px;padding:16px;border:1px solid #eee;border-radius:12px;">
+    <h2 style="margin:0 0 12px; text-transform:uppercase; letter-spacing:.02em;">OUTCOME</h2>
+    <div id="outcomeText" style="line-height:1.7;"></div>
+    <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;">
+      <button type="button" id="restart"
+        style="padding:10px 14px;border:1px solid #ccc;background:#fff;border-radius:10px;cursor:pointer;">
+        HOW CAN WE HELP?
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const $q = document.getElementById("question");
+  const $opts = document.getElementById("options");
+  const $card = document.getElementById("card");
+  const $out = document.getElementById("outcome");
+  const $outText = document.getElementById("outcomeText");
+  const $restart = document.getElementById("restart");
+
+  const BTN = "padding:10px 14px;border:1px solid #ccc;background:#fff;border-radius:10px;cursor:pointer;text-transform:uppercase;";
+
+  function showQuestion(id){
+    const node = NODES[id];
+    if(!node) return;
+
+    $out.style.display = "none";
+    $card.style.display = "";
+
+    $q.textContent = node.q;
+    $opts.innerHTML = "";
+
+    node.options.forEach(o => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.textContent = o.label;
+      b.style.cssText = BTN;
+      b.addEventListener("click", () => {
+        if (o.nextType === "outcome") showOutcome(o.outcomeKey);
+        else showQuestion(o.next);
+      });
+      $opts.appendChild(b);
+    });
+  }
+
+  function showOutcome(key){
+    const lines = OUTCOMES[key] || ["OUTCOME"];
+    $outText.innerHTML = lines.map(l => `<div>${escapeHtml(l)}</div>`).join("");
+    $card.style.display = "none";
+    $out.style.display = "";
+  }
+
+  function escapeHtml(s){
+    return String(s)
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;")
+      .replaceAll("'","&#039;");
+  }
+
+  // -----------------------------
+  // TEXT = ONLY FROM V42 PDF
+  // -----------------------------
+
+  const NODES = {
+    start: {
+      q: "HOW CAN WE HELP?",
+      options: [
+        { label: "I HAVE A CHALLANGE", next: "peer_partner" },
+        { label: "WE ARE AN INITIATIVE", next: "initiative_type" },
+        { label: "I HAVE A SOLUTION", next: "solution_relate" }
+      ]
+    },
+
+    // --- I HAVE A CHALLANGE ---
+    peer_partner: {
+      q: "ARE YOU ALREADY A PEER PARTNER OR ARE YOU NEW TO SCOPE 3 PEER GROUP?",
+      options: [
+        { label: "EXISTING PEER", next: "challenge_type" },
+        { label: "NEW PEER", next: "challenge_type" }
+      ]
+    },
+
+    challenge_type: {
+      q: "WHAT TYPE OF CHALLANGE DO YOU HAVE?",
+      options: [
+        { label: "INDUSTRY SPECIFIC CHALLANGE", next: "industry_specific_challenges" },
+        { label: "CROSS INDUSTRY CHALLENGE", next: "challenge_relate" }
+      ]
+    },
+
+    industry_specific_challenges: {
+      q: "INDUSTRY SPECIFIC CHALLENGES",
+      options: [
+        { label: "CLICK HERE TO JOIN YOUR INDUSTRY INITIATIVE", nextType: "outcome", outcomeKey: "join_industry_initiative" },
+        { label: "ChallangeS ALREADY BEING SOLVED", next: "already_being_solved" }
+      ]
+    },
+
+    already_being_solved: {
+      q: "ChallangeS ALREADY BEING SOLVED",
+      options: [
+        { label: "SBTI, GHG PROTOCOL CONSULTATIONS", nextType: "outcome", outcomeKey: "industry_solutions" },
+        { label: "STRATEGY DAY", nextType: "outcome", outcomeKey: "industry_solutions" },
+        { label: "SCOPE 3 MATURITY BENCHMARK", nextType: "outcome", outcomeKey: "industry_solutions" },
+        { label: "SCOPE 3 GOVERNANCE", nextType: "outcome", outcomeKey: "industry_solutions" },
+        { label: "SCOPE 3 INNOVATION", nextType: "outcome", outcomeKey: "industry_solutions" }
+      ]
+    },
+
+    challenge_relate: {
+      q: "WHAT DOES YOUR CHALLANGE RELATE TO?",
+      options: [
+        { label: "STRATEGY & STANDARDS", nextType: "outcome", outcomeKey: "challenge_outcome" },
+        { label: "PROCUREMENT SUPPORT", nextType: "outcome", outcomeKey: "challenge_outcome" },
+        { label: "TECH & DATA", nextType: "outcome", outcomeKey: "challenge_outcome" },
+        { label: "SUPPLIER ENGAGEMENT", next: "in_which_area" },
+        { label: "ACTUAL DECARBONIZATION", nextType: "outcome", outcomeKey: "challenge_outcome" }
+      ]
+    },
+
+    in_which_area: {
+      q: "IN WHICH AREA?",
+      options: [
+        { label: "SUPPLIERS", next: "in_which_category" },
+        { label: "POWER", nextType: "outcome", outcomeKey: "challenge_outcome" },
+        { label: "ENERGY", nextType: "outcome", outcomeKey: "challenge_outcome" },
+        { label: "HEAT", nextType: "outcome", outcomeKey: "challenge_outcome" },
+        { label: "FINANCING", nextType: "outcome", outcomeKey: "challenge_outcome" }
+      ]
+    },
+
+    in_which_category: {
+      q: "IN WHICH CATEGORY?",
+      options: [
+        { label: "SUPPLY CHEMICALS", nextType: "outcome", outcomeKey: "challenge_outcome" },
+        { label: "MATERIALS", nextType: "outcome", outcomeKey: "challenge_outcome" }
+      ]
+    },
+
+    // --- WE ARE AN INITIATIVE ---
+    initiative_type: {
+      q: "WHAT TYPE OF INITIATIVE DO YOU HAVE?",
+      options: [
+        { label: "INDUSTRY INITIATIVE", nextType: "outcome", outcomeKey: "external_initiatives" },
+        { label: "CROSS-INDUSTRY INITIATIVE", nextType: "outcome", outcomeKey: "external_initiatives" }
+      ]
+    },
+
+    // --- I HAVE A SOLUTION ---
+    solution_relate: {
+      q: "WHAT DOES YOUR SOLUTION RELATE TO?",
+      options: [
+        { label: "STRATEGY & STANDARDS", next: "solution_topics" },
+        { label: "PROCUREMENT SUPPORT", next: "solution_topics" },
+        { label: "TECH & DATA", next: "solution_topics" },
+        { label: "SUPPLIER ENGAGEMENT", next: "solution_topics" },
+        { label: "ACTUAL DECARBONIZATION", next: "solution_topics" }
+      ]
+    },
+
+    solution_topics: {
+      q: "STRATEGY & STANDARDS",
+      options: [
+        { label: "SBTI, GHG PROTOCOL CONSULTATIONS", nextType: "outcome", outcomeKey: "solution_outcome" },
+        { label: "STRATEGY DAY", nextType: "outcome", outcomeKey: "solution_outcome" },
+        { label: "SCOPE 3 MATURITY BENCHMARK", nextType: "outcome", outcomeKey: "solution_outcome" },
+        { label: "SCOPE 3 GOVERNANCE", nextType: "outcome", outcomeKey: "solution_outcome" },
+        { label: "SCOPE 3 INNOVATION", nextType: "outcome", outcomeKey: "solution_outcome" }
+      ]
+    }
+  };
+
+  const OUTCOMES = {
+    join_industry_initiative: [
+      "CLICK HERE TO JOIN YOUR INDUSTRY INITIATIVE"
+    ],
+
+    industry_solutions: [
+      "OUTCOME",
+      "GROUPS",
+      "PEER PACKAGE MEETINGS",
+      "TOOLS",
+      "INITIATIVES",
+      "SOLUTIONS"
+    ],
+
+    challenge_outcome: [
+      "GROUPS",
+      "PEER PACKAGE MEETINGS",
+      "TOOLS",
+      "INITIATIVES",
+      "SOLUTIONS"
+    ],
+
+    external_initiatives: [
+      "EXTERNAL INITIATIVES"
+    ],
+
+    solution_outcome: [
+      "GROUPS",
+      "MEETINGS",
+      "TOOLS",
+      "INITIATIVES",
+      "SOLUTION",
+      "PARTNER PACKAGES",
+      "STRATEGY DAYS",
+      "TOOLS CLINIC",
+      "SCOPE 3 PODCAST",
+      "SOLUTION PROFILE",
+      "EVENT",
+      "PARTNERSHIP",
+      "MARKET INSIGHTS"
+    ]
+  };
+
+  // Start
+  showQuestion("start");
+
+  // Restart uses the PDF text label
+  $restart.addEventListener("click", () => showQuestion("start"));
+})();
+</script>
+
+</body>
+</html>
