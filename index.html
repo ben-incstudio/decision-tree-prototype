@@ -3,23 +3,32 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Decision Tree V42</title>
+  <title>Decision Tree V42 Prototype</title>
 </head>
-<body style="font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; padding:24px; background:#fff;">
+<body style="font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; padding:24px;">
 
-<div id="app" style="max-width:980px;margin:0 auto;padding:18px;border:1px solid #eee;border-radius:14px;">
-  <div id="card" style="padding:16px;border:1px solid #eee;border-radius:12px;">
-    <h2 id="question" style="margin:0 0 12px; text-transform:uppercase; letter-spacing:.02em;"></h2>
-    <div id="options" style="display:flex;gap:10px;flex-wrap:wrap;"></div>
+<div id="dtree" style="max-width:900px;margin:0 auto;padding:18px;border:1px solid #eee;border-radius:14px;">
+  <h2 style="margin:0 0 6px;">Decision Tree (V42 Prototype)</h2>
+  <p style="margin:0 0 18px;color:#666;">Conditional logic demo (questions + outcome text only).</p>
+
+  <div id="dt-card" style="padding:16px;border:1px solid #eee;border-radius:12px;">
+    <h3 id="dt-question" style="margin:0 0 10px;"></h3>
+    <div id="dt-options" style="display:flex;gap:10px;flex-wrap:wrap;"></div>
+    <p id="dt-help" style="margin:12px 0 0;font-size:14px;color:#666;"></p>
   </div>
 
-  <div id="outcome" style="display:none;margin-top:16px;padding:16px;border:1px solid #eee;border-radius:12px;">
-    <h2 style="margin:0 0 12px; text-transform:uppercase; letter-spacing:.02em;">OUTCOME</h2>
-    <div id="outcomeText" style="line-height:1.7;"></div>
+  <div id="dt-outcome-wrap" style="display:none;margin-top:16px;padding:16px;border:1px solid #eee;border-radius:12px;">
+    <h3 style="margin:0 0 8px;">Outcome</h3>
+    <p id="dt-outcome" style="margin:0;color:#444;line-height:1.5;"></p>
+
     <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;">
-      <button type="button" id="restart"
+      <button type="button" id="dt-back"
         style="padding:10px 14px;border:1px solid #ccc;background:#fff;border-radius:10px;cursor:pointer;">
-        HOW CAN WE HELP?
+        Back
+      </button>
+      <button type="button" id="dt-reset"
+        style="padding:10px 14px;border:1px solid #ccc;background:#f7f7f7;border-radius:10px;cursor:pointer;">
+        Reset
       </button>
     </div>
   </div>
@@ -27,215 +36,264 @@
 
 <script>
 (function(){
-  const $q = document.getElementById("question");
-  const $opts = document.getElementById("options");
-  const $card = document.getElementById("card");
-  const $out = document.getElementById("outcome");
-  const $outText = document.getElementById("outcomeText");
-  const $restart = document.getElementById("restart");
+  const root = document.getElementById("dtree");
+  const qEl = document.getElementById("dt-question");
+  const optEl = document.getElementById("dt-options");
+  const helpEl = document.getElementById("dt-help");
 
-  const BTN = "padding:10px 14px;border:1px solid #ccc;background:#fff;border-radius:10px;cursor:pointer;text-transform:uppercase;";
+  const outcomeWrap = document.getElementById("dt-outcome-wrap");
+  const outcomeEl = document.getElementById("dt-outcome");
 
-  function showQuestion(id){
-    const node = NODES[id];
-    if(!node) return;
+  const backBtn = document.getElementById("dt-back");
+  const resetBtn = document.getElementById("dt-reset");
 
-    $out.style.display = "none";
-    $card.style.display = "";
-
-    $q.textContent = node.q;
-    $opts.innerHTML = "";
-
-    node.options.forEach(o => {
-      const b = document.createElement("button");
-      b.type = "button";
-      b.textContent = o.label;
-      b.style.cssText = BTN;
-      b.addEventListener("click", () => {
-        if (o.nextType === "outcome") showOutcome(o.outcomeKey);
-        else showQuestion(o.next);
-      });
-      $opts.appendChild(b);
-    });
-  }
-
-  function showOutcome(key){
-    const lines = OUTCOMES[key] || ["OUTCOME"];
-    $outText.innerHTML = lines.map(l => `<div>${escapeHtml(l)}</div>`).join("");
-    $card.style.display = "none";
-    $out.style.display = "";
-  }
-
-  function escapeHtml(s){
-    return String(s)
-      .replaceAll("&","&amp;")
-      .replaceAll("<","&lt;")
-      .replaceAll(">","&gt;")
-      .replaceAll('"',"&quot;")
-      .replaceAll("'","&#039;");
-  }
-
-  // -----------------------------
-  // TEXT = ONLY FROM V42 PDF
-  // -----------------------------
+  // --------------------------------------------
+  // V42 FLOW (from your mindmap)
+  // Nodes are either:
+  //  - type: "q" (question with options)
+  //  - type: "outcome" (final text)
+  // --------------------------------------------
 
   const NODES = {
     start: {
-      q: "HOW CAN WE HELP?",
+      type: "q",
+      question: "How can we help?",
+      help: "Choose one option to continue.",
       options: [
-        { label: "I HAVE A CHALLANGE", next: "peer_partner" },
-        { label: "WE ARE AN INITIATIVE", next: "initiative_type" },
-        { label: "I HAVE A SOLUTION", next: "solution_relate" }
+        { label: "I have a challenge", next: "peer_status" },
+        { label: "We are an initiative", next: "initiative_type" },
+        { label: "I have a solution", next: "solution_relate" }
       ]
     },
 
-    // --- I HAVE A CHALLANGE ---
-    peer_partner: {
-      q: "ARE YOU ALREADY A PEER PARTNER OR ARE YOU NEW TO SCOPE 3 PEER GROUP?",
+    // --- CHALLENGE PATH (with Peer Partner status) ---
+    peer_status: {
+      type: "q",
+      question: "Are you already a Peer Partner or are you new to Scope 3 Peer Group?",
+      help: "",
       options: [
-        { label: "EXISTING PEER", next: "challenge_type" },
-        { label: "NEW PEER", next: "challenge_type" }
+        { label: "Existing peer", next: "challenge_type" },
+        { label: "New peer", next: "challenge_type" }
       ]
     },
 
     challenge_type: {
-      q: "WHAT TYPE OF CHALLANGE DO YOU HAVE?",
+      type: "q",
+      question: "What type of challenge do you have?",
+      help: "",
       options: [
-        { label: "INDUSTRY SPECIFIC CHALLANGE", next: "industry_specific_challenges" },
-        { label: "CROSS INDUSTRY CHALLENGE", next: "challenge_relate" }
+        { label: "Industry specific challenge", next: "industry_specific_challenge_info" },
+        { label: "Cross industry challenge", next: "challenge_relate" }
       ]
     },
 
-    industry_specific_challenges: {
-      q: "INDUSTRY SPECIFIC CHALLENGES",
-      options: [
-        { label: "CLICK HERE TO JOIN YOUR INDUSTRY INITIATIVE", nextType: "outcome", outcomeKey: "join_industry_initiative" },
-        { label: "ChallangeS ALREADY BEING SOLVED", next: "already_being_solved" }
-      ]
-    },
-
-    already_being_solved: {
-      q: "ChallangeS ALREADY BEING SOLVED",
-      options: [
-        { label: "SBTI, GHG PROTOCOL CONSULTATIONS", nextType: "outcome", outcomeKey: "industry_solutions" },
-        { label: "STRATEGY DAY", nextType: "outcome", outcomeKey: "industry_solutions" },
-        { label: "SCOPE 3 MATURITY BENCHMARK", nextType: "outcome", outcomeKey: "industry_solutions" },
-        { label: "SCOPE 3 GOVERNANCE", nextType: "outcome", outcomeKey: "industry_solutions" },
-        { label: "SCOPE 3 INNOVATION", nextType: "outcome", outcomeKey: "industry_solutions" }
-      ]
+    industry_specific_challenge_info: {
+      type: "outcome",
+      text: [
+        "Path: Challenge → Industry specific challenge.",
+        "",
+        "Next action (from diagram): Click here to join your industry initiative.",
+        "",
+        "Demo note: In a full build, this would route to the correct industry initiative join page or lead capture."
+      ].join("\n")
     },
 
     challenge_relate: {
-      q: "WHAT DOES YOUR CHALLANGE RELATE TO?",
+      type: "q",
+      question: "What does your challenge relate to?",
+      help: "Select an area to continue.",
       options: [
-        { label: "STRATEGY & STANDARDS", nextType: "outcome", outcomeKey: "challenge_outcome" },
-        { label: "PROCUREMENT SUPPORT", nextType: "outcome", outcomeKey: "challenge_outcome" },
-        { label: "TECH & DATA", nextType: "outcome", outcomeKey: "challenge_outcome" },
-        { label: "SUPPLIER ENGAGEMENT", next: "in_which_area" },
-        { label: "ACTUAL DECARBONIZATION", nextType: "outcome", outcomeKey: "challenge_outcome" }
+        { label: "Strategy & standards", next: "challenge_area_strategy" },
+        { label: "Procurement support", next: "challenge_area_procurement" },
+        { label: "Tech & data", next: "challenge_area_tech" },
+        { label: "Supplier engagement", next: "challenge_area_supplier_engagement" },
+        { label: "Actual decarbonization", next: "challenge_area_decarb" }
       ]
     },
 
-    in_which_area: {
-      q: "IN WHICH AREA?",
+    // Challenge area → Industry supply breakdown (only shown on the diagram)
+    challenge_area_supplier_engagement: {
+      type: "q",
+      question: "In which area?",
+      help: "Supplier engagement → choose a sector.",
       options: [
-        { label: "SUPPLIERS", next: "in_which_category" },
-        { label: "POWER", nextType: "outcome", outcomeKey: "challenge_outcome" },
-        { label: "ENERGY", nextType: "outcome", outcomeKey: "challenge_outcome" },
-        { label: "HEAT", nextType: "outcome", outcomeKey: "challenge_outcome" },
-        { label: "FINANCING", nextType: "outcome", outcomeKey: "challenge_outcome" }
+        { label: "Suppliers", next: "challenge_supplier_category" },
+        { label: "Power", next: "challenge_outcome_generic" },
+        { label: "Energy", next: "challenge_outcome_generic" },
+        { label: "Heat", next: "challenge_outcome_generic" },
+        { label: "Financing", next: "challenge_outcome_generic" }
       ]
     },
 
-    in_which_category: {
-      q: "IN WHICH CATEGORY?",
+    challenge_supplier_category: {
+      type: "q",
+      question: "In which category?",
+      help: "Suppliers → choose a category.",
       options: [
-        { label: "SUPPLY CHEMICALS", nextType: "outcome", outcomeKey: "challenge_outcome" },
-        { label: "MATERIALS", nextType: "outcome", outcomeKey: "challenge_outcome" }
+        { label: "Supply chemicals", next: "challenge_outcome_generic" },
+        { label: "Supply materials", next: "challenge_outcome_generic" }
       ]
     },
 
-    // --- WE ARE AN INITIATIVE ---
+    // Other areas just go to outcome for the prototype
+    challenge_area_strategy: { type:"outcome", text: "Path: Challenge → Strategy & standards.\n\nOutcome: (Demo) Show relevant Groups, Peer Package Meetings, Tools, Initiatives, Solutions." },
+    challenge_area_procurement: { type:"outcome", text: "Path: Challenge → Procurement support.\n\nOutcome: (Demo) Show relevant Groups, Peer Package Meetings, Tools, Initiatives, Solutions." },
+    challenge_area_tech: { type:"outcome", text: "Path: Challenge → Tech & data.\n\nOutcome: (Demo) Show relevant Groups, Peer Package Meetings, Tools, Initiatives, Solutions." },
+    challenge_area_decarb: { type:"outcome", text: "Path: Challenge → Actual decarbonization.\n\nOutcome: (Demo) Show relevant Groups, Peer Package Meetings, Tools, Initiatives, Solutions." },
+
+    challenge_outcome_generic: {
+      type: "outcome",
+      text: [
+        "Path: Challenge → Supplier Engagement / Sector or Supplier Category.",
+        "",
+        "Outcome (from diagram):",
+        "• Groups",
+        "• Peer package meetings",
+        "• Tools",
+        "• Initiatives",
+        "• Solutions",
+        "",
+        "Demo note: In a full build, this would filter content based on the chosen sector/category."
+      ].join("\n")
+    },
+
+    // --- INITIATIVE PATH ---
     initiative_type: {
-      q: "WHAT TYPE OF INITIATIVE DO YOU HAVE?",
+      type: "q",
+      question: "What type of initiative do you have?",
+      help: "",
       options: [
-        { label: "INDUSTRY INITIATIVE", nextType: "outcome", outcomeKey: "external_initiatives" },
-        { label: "CROSS-INDUSTRY INITIATIVE", nextType: "outcome", outcomeKey: "external_initiatives" }
+        { label: "Industry initiative", next: "initiative_outcome" },
+        { label: "Cross-industry initiative", next: "initiative_outcome" }
       ]
     },
 
-    // --- I HAVE A SOLUTION ---
+    initiative_outcome: {
+      type: "outcome",
+      text: [
+        "Path: We are an initiative.",
+        "",
+        "Outcome (from diagram): Initiative Support Services / External Initiatives.",
+        "",
+        "Demo note: In a full build, this would route to initiative support + relevant next steps."
+      ].join("\n")
+    },
+
+    // --- SOLUTION PATH ---
     solution_relate: {
-      q: "WHAT DOES YOUR SOLUTION RELATE TO?",
+      type: "q",
+      question: "What does your solution relate to?",
+      help: "Select an area to continue.",
       options: [
-        { label: "STRATEGY & STANDARDS", next: "solution_topics" },
-        { label: "PROCUREMENT SUPPORT", next: "solution_topics" },
-        { label: "TECH & DATA", next: "solution_topics" },
-        { label: "SUPPLIER ENGAGEMENT", next: "solution_topics" },
-        { label: "ACTUAL DECARBONIZATION", next: "solution_topics" }
+        { label: "Strategy & standards", next: "solution_topics" },
+        { label: "Procurement support", next: "solution_topics" },
+        { label: "Tech & data", next: "solution_topics" },
+        { label: "Supplier engagement", next: "solution_topics" },
+        { label: "Actual decarbonization", next: "solution_topics" }
       ]
     },
 
     solution_topics: {
-      q: "STRATEGY & STANDARDS",
+      type: "q",
+      question: "Select a topic (example set from V42)",
+      help: "These map to the labels shown under outcomes in the diagram.",
       options: [
-        { label: "SBTI, GHG PROTOCOL CONSULTATIONS", nextType: "outcome", outcomeKey: "solution_outcome" },
-        { label: "STRATEGY DAY", nextType: "outcome", outcomeKey: "solution_outcome" },
-        { label: "SCOPE 3 MATURITY BENCHMARK", nextType: "outcome", outcomeKey: "solution_outcome" },
-        { label: "SCOPE 3 GOVERNANCE", nextType: "outcome", outcomeKey: "solution_outcome" },
-        { label: "SCOPE 3 INNOVATION", nextType: "outcome", outcomeKey: "solution_outcome" }
+        { label: "SBTI / GHG Protocol consultations", next: "solution_outcome" },
+        { label: "Strategy Day", next: "solution_outcome" },
+        { label: "Scope 3 Maturity Benchmark", next: "solution_outcome" },
+        { label: "Scope 3 Governance", next: "solution_outcome" },
+        { label: "Scope 3 Innovation", next: "solution_outcome" }
       ]
+    },
+
+    solution_outcome: {
+      type: "outcome",
+      text: [
+        "Path: I have a solution.",
+        "",
+        "Outcome (from diagram):",
+        "• Groups",
+        "• Meetings",
+        "• Tools",
+        "• Initiatives",
+        "",
+        "Partner Packages (from V42):",
+        "• Strategy Days",
+        "• Tools Clinic",
+        "• Scope 3 Podcast",
+        "• Solution Profile",
+        "• Event",
+        "• Partnership",
+        "• Market Insights",
+        "",
+        "Demo note: In a full build, this would publish the correct ‘Solution’ + partner package recommendations."
+      ].join("\n")
     }
   };
 
-  const OUTCOMES = {
-    join_industry_initiative: [
-      "CLICK HERE TO JOIN YOUR INDUSTRY INITIATIVE"
-    ],
+  // ---------------------------
+  // RUNTIME
+  // ---------------------------
+  let history = [];
+  let currentId = "start";
 
-    industry_solutions: [
-      "OUTCOME",
-      "GROUPS",
-      "PEER PACKAGE MEETINGS",
-      "TOOLS",
-      "INITIATIVES",
-      "SOLUTIONS"
-    ],
+  function btnStyle(){
+    return "padding:10px 14px;border:1px solid #ccc;background:#fff;border-radius:10px;cursor:pointer;";
+  }
 
-    challenge_outcome: [
-      "GROUPS",
-      "PEER PACKAGE MEETINGS",
-      "TOOLS",
-      "INITIATIVES",
-      "SOLUTIONS"
-    ],
+  function renderNode(id){
+    const node = NODES[id];
+    if(!node) {
+      qEl.textContent = "Missing node: " + id;
+      optEl.innerHTML = "";
+      helpEl.textContent = "";
+      return;
+    }
 
-    external_initiatives: [
-      "EXTERNAL INITIATIVES"
-    ],
+    currentId = id;
 
-    solution_outcome: [
-      "GROUPS",
-      "MEETINGS",
-      "TOOLS",
-      "INITIATIVES",
-      "SOLUTION",
-      "PARTNER PACKAGES",
-      "STRATEGY DAYS",
-      "TOOLS CLINIC",
-      "SCOPE 3 PODCAST",
-      "SOLUTION PROFILE",
-      "EVENT",
-      "PARTNERSHIP",
-      "MARKET INSIGHTS"
-    ]
-  };
+    if(node.type === "q"){
+      // Show question card
+      document.getElementById("dt-card").style.display = "";
+      outcomeWrap.style.display = "none";
 
-  // Start
-  showQuestion("start");
+      qEl.textContent = node.question;
+      helpEl.textContent = node.help || "";
+      optEl.innerHTML = "";
 
-  // Restart uses the PDF text label
-  $restart.addEventListener("click", () => showQuestion("start"));
+      node.options.forEach(opt => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.textContent = opt.label;
+        b.style.cssText = btnStyle();
+        b.addEventListener("click", () => {
+          history.push(id);
+          renderNode(opt.next);
+        });
+        optEl.appendChild(b);
+      });
+    } else {
+      // Show outcome
+      document.getElementById("dt-card").style.display = "none";
+      outcomeWrap.style.display = "";
+
+      // Preserve line breaks
+      outcomeEl.innerHTML = (node.text || "").replace(/\n/g, "<br>");
+    }
+  }
+
+  backBtn.addEventListener("click", () => {
+    const prev = history.pop();
+    if(prev) renderNode(prev);
+  });
+
+  resetBtn.addEventListener("click", () => {
+    history = [];
+    renderNode("start");
+    root.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+
+  renderNode("start");
 })();
 </script>
 
